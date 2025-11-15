@@ -27,5 +27,6 @@ jobs:
         env:
           SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
+          SENDER_EMAIL_ADDRESS: ${{ secrets.SENDER_EMAIL_ADDRESS }}
+          TO_EMAIL_ADDRESS: ${{ secrets.TO_EMAIL_ADDRESS }}
           ROLE_QUERY: ${{ secrets.ROLE_QUERY }}

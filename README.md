@@ -32,8 +32,11 @@ Your free [SerpAPI](https://serpapi.com/) key
 ### `RESEND_API_KEY`
 Your free [Resend](https://resend.com/) API key
 
-### `EMAIL_ADDRESS`
-Email address used for both sending and receiving, set in Resend
+### `SENDER_EMAIL_ADDRESS`
+Verified sender email address (use a domain configured in Resend)
+
+### `TO_EMAIL_ADDRESS`
+Recipient email address that receives the daily job summary
 
 ### `ROLE_QUERY`
 The job search query  

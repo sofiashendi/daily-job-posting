@@ -10,11 +10,11 @@
  * Environment variables:
  * SERPAPI_KEY
  * RESEND_API_KEY
- * EMAIL_ADDRESS
+ * SENDER_EMAIL_ADDRESS
+ * TO_EMAIL_ADDRESS
  * ROLE_QUERY
  */
 
-import fetch from "node-fetch";
 import { Resend } from "resend";
 
 /**
@@ -80,15 +80,15 @@ function removeDuplicates(jobs) {
     return output;
 }
 
-async function notifySerpFailure(resend, emailAddress, details) {
-    if (!resend || !emailAddress) {
+async function notifySerpFailure(resend, fromAddress, toAddress, details) {
+    if (!resend || !fromAddress || !toAddress) {
         return;
     }
 
     try {
         await resend.emails.send({
-            from: emailAddress,
-            to: emailAddress,
+            from: fromAddress,
+            to: toAddress,
             subject: "Daily job fetch failed",
             text: details
         });
@@ -100,10 +100,11 @@ async function notifySerpFailure(resend, emailAddress, details) {
 async function fetchJobs() {
     const serpKey = process.env.SERPAPI_KEY;
     const resendKey = process.env.RESEND_API_KEY;
-    const emailAddress = process.env.EMAIL_ADDRESS;
+    const senderEmailAddress = process.env.SENDER_EMAIL_ADDRESS;
+    const toEmailAddress = process.env.TO_EMAIL_ADDRESS;
     const roleQuery = process.env.ROLE_QUERY || "Engineering Manager jobs in Canada";
 
-    if (!serpKey || !resendKey || !emailAddress) {
+    if (!serpKey || !resendKey || !senderEmailAddress || !toEmailAddress) {
         throw new Error("One or more environment variables are missing");
     }
 
@@ -116,7 +117,7 @@ async function fetchJobs() {
     try {
         response = await fetch(serpUrl);
     } catch (requestError) {
-        await notifySerpFailure(resend, emailAddress, "SerpAPI request error: " + requestError.message);
+        await notifySerpFailure(resend, senderEmailAddress, toEmailAddress, "SerpAPI request error: " + requestError.message);
         throw requestError;
     }
 
@@ -124,7 +125,8 @@ async function fetchJobs() {
         const body = await response.text();
         await notifySerpFailure(
             resend,
-            emailAddress,
+            senderEmailAddress,
+            toEmailAddress,
             "SerpAPI responded with status " + response.status + ": " + response.statusText + "\n" + body
         );
         throw new Error("SerpAPI request failed with status " + response.status);
@@ -134,7 +136,7 @@ async function fetchJobs() {
 
     if (json.error) {
         const errorDetails = "SerpAPI error: " + json.error + (json.error_code ? " (" + json.error_code + ")" : "");
-        await notifySerpFailure(resend, emailAddress, errorDetails);
+        await notifySerpFailure(resend, senderEmailAddress, toEmailAddress, errorDetails);
         throw new Error(errorDetails);
     }
 
@@ -167,8 +169,8 @@ async function fetchJobs() {
     }).join("\n");
 
     await resend.emails.send({
-        from: emailAddress,
-        to: emailAddress,
+        from: senderEmailAddress,
+        to: toEmailAddress,
         subject: "New postings for " + roleQuery,
         text: message
     });
