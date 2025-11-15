@@ -1,0 +1,31 @@
+name: Daily Job Fetch
+
+on:
+  schedule:
+    - cron: "0 12 * * *"
+  workflow_dispatch:
+
+jobs:
+  fetch:
+    name: Fetch and Email Job Postings
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install resend node-fetch
+
+      - name: Run job fetcher
+        run: node fetch_jobs.js
+        env:
+          SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
+          ROLE_QUERY: ${{ secrets.ROLE_QUERY }}
