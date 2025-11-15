@@ -17,8 +17,6 @@
 
 import { Resend } from "resend";
 
-const QUOTA_EXCEEDED_CODE = "SERP_QUOTA_EXCEEDED";
-
 /**
  * Determine whether a posting is from today.
  */
@@ -93,25 +91,6 @@ function parseRoleQueries(rawRoles) {
         .filter(role => role.length > 0);
 }
 
-function createQuotaExceededError(message) {
-    const error = new Error(message);
-    error.code = QUOTA_EXCEEDED_CODE;
-    return error;
-}
-
-function isQuotaExceededError(error) {
-    return Boolean(error && error.code === QUOTA_EXCEEDED_CODE);
-}
-
-function isQuotaErrorMessage(message) {
-    if (!message) {
-        return false;
-    }
-
-    const normalized = message.toLowerCase();
-    return normalized.includes("quota") || normalized.includes("limit") || normalized.includes("exceeded");
-}
-
 function formatRoleSection(roleQuery, jobs) {
     if (jobs.length === 0) {
         return [
@@ -153,6 +132,21 @@ function formatQuotaSection(roleQuery, isTriggeredRole, details) {
     ].join("\n");
 }
 
+function redactApiKey(text, key) {
+    if (!text || !key) {
+        return text;
+    }
+
+    try {
+        const safeKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const pattern = new RegExp(safeKey, "g");
+        return text.replace(pattern, "[REDACTED]");
+    } catch (error) {
+        console.error("Failed to redact API key:", error);
+        return text;
+    }
+}
+
 async function fetchRemainingSearches(serpKey, resend, senderEmailAddress, toEmailAddress) {
     const accountUrl = "https://serpapi.com/account?api_key=" + serpKey;
 
@@ -170,7 +164,7 @@ async function fetchRemainingSearches(serpKey, resend, senderEmailAddress, toEma
     }
 
     if (!response.ok) {
-        const body = await response.text();
+        const body = redactApiKey(await response.text(), serpKey);
         await notifySerpFailure(
             resend,
             senderEmailAddress,
@@ -230,12 +224,8 @@ async function fetchRoleResults(roleQuery, serpKey, resend, senderEmailAddress, 
         throw requestError;
     }
 
-    if (response.status === 429) {
-        throw createQuotaExceededError("SerpAPI free tier limit reached while fetching \"" + roleQuery + "\".");
-    }
-
     if (!response.ok) {
-        const body = await response.text();
+        const body = redactApiKey(await response.text(), serpKey);
         await notifySerpFailure(
             resend,
             senderEmailAddress,
@@ -249,10 +239,6 @@ async function fetchRoleResults(roleQuery, serpKey, resend, senderEmailAddress, 
 
     if (json.error) {
         const errorDetails = "SerpAPI error for \"" + roleQuery + "\": " + json.error + (json.error_code ? " (" + json.error_code + ")" : "");
-        if (isQuotaErrorMessage(json.error)) {
-            throw createQuotaExceededError(errorDetails);
-        }
-
         await notifySerpFailure(resend, senderEmailAddress, toEmailAddress, errorDetails);
         throw new Error(errorDetails);
     }
@@ -322,14 +308,6 @@ async function fetchJobs() {
             sections.push(formatRoleSection(role, jobs));
             remainingSearches -= 1;
         } catch (error) {
-            if (isQuotaExceededError(error)) {
-                quotaTriggered = true;
-                sections.push(formatQuotaSection(role, true, error.message));
-                quotaMessageSent = true;
-                remainingSearches = 0;
-                continue;
-            }
-
             throw error;
         }
     }
