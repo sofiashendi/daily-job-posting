@@ -20,7 +20,7 @@ jobs:
           node-version: "20"
 
       - name: Install dependencies
-        run: npm install resend node-fetch
+        run: npm install
 
       - name: Run job fetcher
         run: node fetch_jobs.js

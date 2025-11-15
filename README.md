@@ -39,9 +39,9 @@ Verified sender email address (use a domain configured in Resend)
 Recipient email address that receives the daily job summary
 
 ### `ROLE_QUERY`
-The job search query  
+Comma-separated list of role queries to run each day  
 Example:  
-Engineering Manager jobs in Canada
+Engineering Manager jobs in Canada, Staff Engineer remote Canada
 
 ---
 
@@ -62,6 +62,10 @@ You can set `ROLE_QUERY` to anything, such as:
 - Staff Engineer remote Canada
 - Senior Engineering Manager Montréal
 - Director of Engineering Canada
+
+Include multiple values separated by commas to fetch several roles in one run. If the SerpAPI free tier limit is hit mid-run, the daily email will include a warning and the remaining roles are skipped to avoid exceeding the quota.
+
+Before running the searches, the workflow checks your SerpAPI account (`total_searches_left`) so it knows how many roles can run that day. If there aren't enough credits for every role, it runs as many as possible and the email explains which roles were skipped because the quota was exhausted.
 
 ---
 
