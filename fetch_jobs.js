@@ -326,7 +326,15 @@ async function fetchJobs() {
         text: emailBody
     });
 
-    console.log("Email sent");
+    if (quotaTriggered) {
+        if (hasAnyPosting) {
+            console.log("Email sent with postings plus a quota notice");
+        } else {
+            console.log("Email sent with quota notice only (no postings found)");
+        }
+    } else {
+        console.log("Email sent with new postings");
+    }
 }
 
 fetchJobs().catch(err => {
